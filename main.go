@@ -6,6 +6,12 @@ import (
 	"github.com/codegangsta/cli"
 	"log"
 	"os"
+	"regexp"
+)
+
+const (
+	DATA  = ".*?"
+	SPACE = "\\s"
 )
 
 func main() {
@@ -13,7 +19,7 @@ func main() {
 	app.Author = "Nicolas Grange"
 	app.Email = "grange74@gmail.com"
 	app.Usage = "cli-log-parser filename"
-	app.Version = "0.0.1"
+	app.Version = "0.0.2"
 	app.Action = parseLogFile
 	app.Run(os.Args)
 }
@@ -32,8 +38,19 @@ func parseLogFile(c *cli.Context) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+
+	// Example: 2015-03-18 08:54:07.498 [http-8080-6] ERROR Logger - executeParameterisedSql(): Error storing data in
+	errorLogRegEx, err := regexp.Compile(DATA + SPACE + "\\[" + DATA + "\\]" + SPACE + "ERROR Logger" + DATA)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+		line := scanner.Text()
+		if errorLogRegEx.MatchString(line) {
+			fmt.Println("ERROR: " + line)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
